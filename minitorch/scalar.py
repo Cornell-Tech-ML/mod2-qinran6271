@@ -5,6 +5,7 @@ from typing import Any, Iterable, Optional, Sequence, Tuple, Type, Union
 
 import numpy as np
 
+
 from dataclasses import field
 from .autodiff import Context, Variable, backpropagate, central_difference
 from .scalar_functions import (
@@ -112,21 +113,39 @@ class Scalar:
         return self.history is not None and self.history.last_fn is None
 
     def is_constant(self) -> bool:
+        """True if this variable is a constant (no derivative)."""
         return self.history is None
 
     @property
     def parents(self) -> Iterable[Variable]:
-        """Get the variables used to create this one."""
+        """Return the parents of this variable."""
         assert self.history is not None
         return self.history.inputs
 
     def chain_rule(self, d_output: Any) -> Iterable[Tuple[Variable, Any]]:
+        """Implement chain rule"""
         h = self.history
         assert h is not None
         assert h.last_fn is not None
         assert h.ctx is not None
 
-        raise NotImplementedError("Need to include this file from past assignment.")
+        # TODO: Implement for Task 1.3.
+        # answer
+        x = h.last_fn._backward(h.ctx, d_output)
+        return zip(h.inputs, x)
+
+        # my answer
+        # rets = []
+        # inputs = h.inputs  # Scalar Variables
+        # local_gradients = h.last_fn._backward(h.ctx, d_output)
+
+        # for i, g in zip(inputs, local_gradients):
+        #     if i.is_constant():
+        #         continue
+        #     rets.append((i, g))
+
+        # return rets
+        # raise NotImplementedError("Need to implement for Task 1.3")
 
     def backward(self, d_output: Optional[float] = None) -> None:
         """Calls autodiff to fill in the derivatives for the history of this object.
@@ -141,17 +160,72 @@ class Scalar:
             d_output = 1.0
         backpropagate(self, d_output)
 
-    raise NotImplementedError("Need to include this file from past assignment.")
+    """less than
+    greater than
+    subtract
+    negation
+    +
+    log
+    exp
+    sigmoid
+    relu"""
+
+    # TODO: Implement for Task 1.2.
+    def __eq__(self, b: ScalarLike) -> Scalar:
+        """Check if a number is equal to another."""
+        return EQ.apply(self, b)
+
+    def __lt__(self, b: ScalarLike) -> Scalar:
+        """Check if a number is less than another."""
+        return LT.apply(self, b)
+
+    def __gt__(self, b: ScalarLike) -> Scalar:
+        """Check if a number is greater than another."""
+        return LT.apply(b, self)
+
+    def __sub__(self, b: ScalarLike) -> Scalar:
+        """Subtract two numbers."""
+        return Add.apply(self, Neg.apply(b))
+
+    def __neg__(self) -> Scalar:
+        """Negate a number."""
+        return Neg.apply(self)
+
+    def __add__(self, b: ScalarLike) -> Scalar:
+        """Add two numbers."""
+        return Add.apply(self, b)
+
+    def log(self) -> Scalar:
+        """Compute the log of a number."""
+        return Log.apply(self)
+
+    def exp(self) -> Scalar:
+        """Compute the exponential of a number."""
+        return Exp.apply(self)
+
+    def sigmoid(self) -> Scalar:
+        """Compute the sigmoid of a number."""
+        return Sigmoid.apply(self)
+
+    def relu(self) -> Scalar:
+        """Compute the ReLU of a number."""
+        return ReLU.apply(self)
+
+    # raise NotImplementedError("Need to implement for Task 1.2")
 
 
 def derivative_check(f: Any, *scalars: Scalar) -> None:
     """Checks that autodiff works on a python function.
     Asserts False if derivative is incorrect.
 
-    Parameters
-    ----------
+    Args:
+    ----
         f : function from n-scalars to 1-scalar.
         *scalars  : n input scalar values.
+
+    Returns:
+    -------
+        None
 
     """
     out = f(*scalars)
