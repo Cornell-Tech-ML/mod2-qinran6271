@@ -7,6 +7,8 @@ from minitorch import TensorData
 from minitorch.tensor_ops import SimpleBackend
 from .tensor_strategies import indices, tensor_data
 
+import numpy as np
+
 # ## Tasks 2.1
 
 # Check basic properties of layout and strides.
@@ -118,6 +120,45 @@ def test_shape_broadcast() -> None:
 
     c = minitorch.shape_broadcast((2, 5), (5,))
     assert c == (2, 5)
+
+
+# check boardcast_index
+@pytest.mark.task2_2
+def test_broadcast_index_euqal() -> None:
+    big_shape = np.array([4, 3], dtype=np.int32)
+    shape = np.array([4, 3], dtype=np.int32)
+    big_index = np.array([2, 1], dtype=np.int32)  # Convert tuple to np.ndarray
+    out_index = np.zeros(
+        len(shape), dtype=np.int32
+    )  # Initialize output index as np.ndarray
+
+    expected_out_index = np.array(
+        [2, 1], dtype=np.int32
+    )  # Expected output as np.ndarray
+    minitorch.broadcast_index(big_index, big_shape, shape, out_index)
+
+    assert np.array_equal(
+        out_index, expected_out_index
+    ), f"Expected {expected_out_index}, but got {out_index}"
+
+
+@pytest.mark.task2_2
+def test_broadcast_index() -> None:
+    big_shape = np.array([6, 4, 3], dtype=np.int32)
+    shape = np.array([4, 1], dtype=np.int32)
+    big_index = np.array([5, 2, 1], dtype=np.int32)  # Convert tuple to np.ndarray
+    out_index = np.zeros(
+        len(shape), dtype=np.int32
+    )  # Initialize output index as np.ndarray
+
+    expected_out_index = np.array(
+        [2, 0], dtype=np.int32
+    )  # Expected output as np.ndarray
+    minitorch.broadcast_index(big_index, big_shape, shape, out_index)
+
+    assert np.array_equal(
+        out_index, expected_out_index
+    ), f"Expected {expected_out_index}, but got {out_index}"
 
 
 @given(tensor_data())

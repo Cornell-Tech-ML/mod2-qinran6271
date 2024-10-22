@@ -9,6 +9,12 @@ from minitorch import MathTestVariable, Tensor, grad_check, tensor
 from .strategies import assert_close, small_floats
 from .tensor_strategies import shaped_tensors, tensors
 
+import numpy as np
+from minitorch.tensor_data import Shape, Storage, Strides
+
+
+from minitorch.tensor_ops import tensor_map, tensor_zip, tensor_reduce
+
 one_arg, two_arg, red_arg = MathTestVariable._comp_testing()
 
 
@@ -184,6 +190,165 @@ def test_fromnumpy() -> None:
         assert t[ind] == t2[ind]
 
 
+# my tests for map
+def double_fn(x: float) -> float:
+    return x * 2
+
+
+@pytest.mark.task2_3_1
+# 函数定义：将每个元素乘以 2
+def test_tensor_map_broadcast() -> None:
+    # 初始化存储
+    in_storage: Storage = np.array([1.0, 2.0, 3.0])
+    out_storage: Storage = np.zeros(6)  # (2, 3) 的输出张量
+
+    # 广播形状
+    in_shape: Shape = np.array([1, 3])
+    out_shape: Shape = np.array([2, 3])
+
+    # 对应的步幅
+    in_strides: Strides = np.array([0, 1])  # 第一维度的步幅为 0，表示广播
+    out_strides: Strides = np.array([3, 1])  # 正常的步幅
+
+    # 创建映射函数
+    map_fn = tensor_map(double_fn)
+
+    # 应用映射
+    map_fn(out_storage, out_shape, out_strides, in_storage, in_shape, in_strides)
+
+    # 期望的输出值
+    expected_out_storage = np.array([2.0, 4.0, 6.0, 2.0, 4.0, 6.0], dtype=np.float32)
+
+    # 验证结果是否符合期望
+    assert np.array_equal(
+        out_storage, expected_out_storage
+    ), f"Expected {expected_out_storage}, but got {out_storage}"
+
+
+# my tests for zip
+# 函数定义：将两个元素相加
+def add_fn(x: float, y: float) -> float:
+    return x + y
+
+
+@pytest.mark.task2_3_2
+def test_tensor_zip_broadcast() -> None:
+    # 初始化存储
+    a_storage: Storage = np.array(
+        [1.0, 2.0, 3.0], dtype=np.float64
+    )  # (1, 3) 的输入张量
+    b_storage: Storage = np.array(
+        [4.0, 5.0, 6.0, 7.0, 8.0, 9.0], dtype=np.float64
+    )  # (2, 3) 的输入张量
+    out_storage: Storage = np.zeros(6)  # (2, 3) 的输出张量
+
+    # 广播形状
+    a_shape: Shape = np.array([1, 3])
+    b_shape: Shape = np.array([2, 3])
+    out_shape: Shape = np.array([2, 3])
+
+    # 对应的步幅
+    a_strides: Strides = np.array([0, 1])  # 第一维度的步幅为 0，表示广播
+    b_strides: Strides = np.array([3, 1])  # 正常的步幅
+    out_strides: Strides = np.array([3, 1])  # 输出张量的步幅
+
+    # 创建 tensor_zip 映射函数
+    zip_fn = tensor_zip(add_fn)
+
+    # 应用映射
+    zip_fn(
+        out_storage,
+        out_shape,
+        out_strides,
+        a_storage,
+        a_shape,
+        a_strides,
+        b_storage,
+        b_shape,
+        b_strides,
+    )
+
+    # 期望的输出值
+    expected_out_storage = np.array([5.0, 7.0, 9.0, 8.0, 10.0, 12.0], dtype=np.float64)
+
+    # 验证结果是否符合期望
+    assert np.array_equal(
+        out_storage, expected_out_storage
+    ), f"Expected {expected_out_storage}, but got {out_storage}"
+
+
+# my tests for reduce
+# 函数定义：将两个元素相加
+def sum_fn(x: float, y: float) -> float:
+    return x + y
+
+
+@pytest.mark.task2_3_3
+def test_tensor_reduce() -> None:
+    # 初始化存储
+    a_storage: Storage = np.array(
+        [1.0, 2.0, 3.0, 4.0, 5.0, 6.0], dtype=np.float64
+    )  # (2, 3) 的输入张量
+    out_storage: Storage = np.zeros(2, dtype=np.float64)  # (2, 1) 的输出张量
+
+    # 原始和目标形状
+    a_shape: Shape = np.array([2, 3])
+    out_shape: Shape = np.array([2, 1])  # reduce 后的形状
+
+    # 对应的步幅
+    a_strides: Strides = np.array([3, 1])  # 正常的步幅
+    out_strides: Strides = np.array([1, 1])  # 输出张量的步幅
+
+    # 创建 tensor_reduce 函数
+    reduce_fn = tensor_reduce(sum_fn)
+
+    # 应用 reduce 函数
+    reduce_dim = 1
+    reduce_fn(
+        out_storage, out_shape, out_strides, a_storage, a_shape, a_strides, reduce_dim
+    )
+
+    # 期望的输出值
+    expected_out_storage = np.array([6.0, 15.0], dtype=np.float64)
+
+    # 验证结果是否符合期望
+    assert np.array_equal(
+        out_storage, expected_out_storage
+    ), f"Expected {expected_out_storage}, but got {out_storage}"
+
+
+@pytest.mark.task2_3_3
+def test_tensor_reduce_1() -> None:
+    # 初始化存储
+    a_storage: Storage = np.array([11.0, 16.0], dtype=np.float64)
+    out_storage: Storage = np.zeros(1, dtype=np.float64)
+
+    # 原始和目标形状
+    a_shape: Shape = np.array([1, 2])
+    out_shape: Shape = np.array([1, 1])  # reduce 后的形状
+
+    # 对应的步幅
+    a_strides: Strides = np.array([2, 1])  # 正常的步幅
+    out_strides: Strides = np.array([1, 1])  # 输出张量的步幅
+
+    # 创建 tensor_reduce 函数
+    reduce_fn = tensor_reduce(sum_fn)
+
+    # 应用 reduce 函数
+    reduce_dim = 1
+    reduce_fn(
+        out_storage, out_shape, out_strides, a_storage, a_shape, a_strides, reduce_dim
+    )
+
+    # 期望的输出值
+    expected_out_storage = np.array([27.0], dtype=np.float64)
+
+    # 验证结果是否符合期望
+    assert np.array_equal(
+        out_storage, expected_out_storage
+    ), f"Expected {expected_out_storage}, but got {out_storage}"
+
+
 # Student Submitted Tests
 
 
@@ -220,6 +385,7 @@ def test_reduce_forward_all_dims() -> None:
 
     # reduce all dims, (3 -> 1, 2 -> 1)
     t_summed_all = t.sum()
+    print("---------------------- t_summed_all----------------------", t_summed_all)
 
     # shape (1, 1)
     t_summed_all_expected = tensor([27])
