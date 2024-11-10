@@ -305,14 +305,14 @@ class Tensor:
     @property
     def dims(self) -> int:
         """Return the number of dimensions in the tensor."""
-        return len(self.shape)
+        return self._tensor.dims
 
     # Operators: - add - sub - mul - lt - eq - gt - neg - radd - rmul - all - is_close - sigmoid - relu - log - exp
     def __add__(self, b: TensorLike) -> Tensor:
         return Add.apply(self, self._ensure_tensor(b))
 
     def __sub__(self, b: TensorLike) -> Tensor:
-        return Add.apply(self, Neg.apply(self._ensure_tensor(b)))
+        return Add.apply(self, -self._ensure_tensor(b))
 
     def __mul__(self, b: TensorLike) -> Tensor:
         return Mul.apply(self, self._ensure_tensor(b))
@@ -330,10 +330,10 @@ class Tensor:
         return Neg.apply(self)
 
     def __radd__(self, b: TensorLike) -> Tensor:
-        return Add.apply(self._ensure_tensor(b), self)
+        return self + b
 
     def __rmul__(self, b: TensorLike) -> Tensor:
-        return Mul.apply(self._ensure_tensor(b), self)
+        return self * b
 
     def all(self, dim: Optional[int] = None) -> Tensor:
         """Compute reduce multiplication"""
@@ -345,9 +345,9 @@ class Tensor:
         else:
             return All.apply(self, Tensor.make([dim], (1,), backend=self.backend))
 
-    def is_close(self, b: TensorLike) -> Tensor:
+    def is_close(self, b: Tensor) -> Tensor:
         """Check if two tensors are close"""
-        return IsClose.apply(self, self._ensure_tensor(b))
+        return IsClose.apply(self, b)
 
     def sigmoid(self) -> Tensor:
         """Compute the sigmoid of a tensor."""
@@ -377,7 +377,7 @@ class Tensor:
             return Sum.apply(self, self._ensure_tensor(dim))
 
     def mean(self, dim: Optional[int] = None) -> Tensor:
-        """Compute reduce mean"""
+        """Compute the mean over dimension `dim`."""
         if dim is None:
             return self.sum(dim) / self.size
         else:
@@ -389,6 +389,7 @@ class Tensor:
         shape = (len(orders_list),)
         orders_tensor = Tensor.make(orders_list, shape, backend=self.backend)
         return Permute.apply(self, orders_tensor)
+        # return Permute.apply(self, tensor(list(order)))
 
     def view(self, *shape: int) -> Tensor:
         """Reshape the tensor"""
@@ -396,6 +397,7 @@ class Tensor:
         shape = (len(shape_list),)
         orders_tensor = Tensor.make(shape_list, shape, backend=self.backend)
         return View.apply(self, orders_tensor)
+        # return View.apply(self, tensor(list(shape)))
 
     # set .grad
     def zero_grad_(self) -> None:

@@ -14,6 +14,7 @@ from .tensor_data import (
 
 # add imports
 from numpy import array
+import numpy as np
 #
 
 if TYPE_CHECKING:
@@ -276,11 +277,10 @@ def tensor_map(
         in_strides: Strides,
     ) -> None:
         # TODO: Implement for Task 2.3.
+         # initialize index
+        out_index: Index = array(out_shape)
+        in_index: Index = array(in_shape)
         for i in range(len(out)):
-            # initialize index
-            out_index: Index = array(out_shape)
-            in_index: Index = array(in_shape)
-
             # get out_index from position
             to_index(i, out_shape, out_index)
             # get out_index corresponding to in_index
@@ -337,13 +337,11 @@ def tensor_zip(
         b_strides: Strides,
     ) -> None:
         # TODO: Implement for Task 2.3.
-
+        # initialize index
+        out_index: Index = array(out_shape)
+        a_index: Index = array(a_shape)
+        b_index: Index = array(b_shape)
         for i in range(len(out)):
-            # initialize index
-            out_index: Index = array(out_shape)
-            a_index: Index = array(a_shape)
-            b_index: Index = array(b_shape)
-
             # get out_index from position
             to_index(i, out_shape, out_index)
             # get out_index corresponding to a_index
@@ -390,26 +388,18 @@ def tensor_reduce(
     ) -> None:
         # # TODO: Implement for Task 2.3.
 
-        out_size = 1
-        for dim in out_shape:
-            out_size *= dim
-
-        for i in range(out_size):
-            out_idx = i
-            a_offset = 0
-
-            for d in range(len(out_shape)):
-                if d != reduce_dim:
-                    pos = (out_idx // out_strides[d]) % out_shape[d]
-                    a_offset += pos * a_strides[d]
-
-            reduce_result = a_storage[a_offset]
-            for j in range(1, a_shape[reduce_dim]):
-                a_index = a_offset + j * a_strides[reduce_dim]
-                reduce_result = fn(reduce_result, a_storage[a_index].item())
-
-            out[i] = reduce_result
-
+        out_index: Index = array(out_shape)
+        reduce_size = a_shape[reduce_dim]
+        for i in range(len(out)):
+            # get out_index from position
+            to_index(i, out_shape, out_index)
+            o = index_to_position(out_index, out_strides)
+            for s in range(reduce_size):
+                # get index from out_index
+                out_index[reduce_dim] = s
+                j = index_to_position(out_index, a_strides)
+                # apply fn to out[o] and a_storage[a] and store in out[o]
+                out[o] = fn(out[o], a_storage[j])
     return _reduce
 
 

@@ -68,9 +68,11 @@ def to_index(ordinal: int, shape: Shape, out_index: OutIndex) -> None:
 
     """
     # TODO: Implement for Task 2.1.
+    cur_ord = ordinal + 0
     for i in range(len(shape) - 1, -1, -1):
-        out_index[i] = ordinal % shape[i]
-        ordinal = ordinal // shape[i]
+        sh = shape[i]
+        out_index[i] = int(cur_ord % sh)
+        cur_ord = cur_ord // shape[i]
     # raise NotImplementedError("Need to implement for Task 2.1")
 
 
@@ -96,13 +98,12 @@ def broadcast_index(
 
     """
     # TODO: Implement for Task 2.2.
-    small_len = len(shape)
-    for i in range(1, small_len + 1):
-        small_dim = shape[-i]
-        if small_dim == 1:
-            out_index[-i] = 0
+    for i, s in enumerate(shape):
+        if s > 1:
+            out_index[i] = big_index[i + (len(big_shape) - len(shape))]
         else:
-            out_index[-i] = big_index[-i]
+            out_index[i] = 0
+    return None
     # raise NotImplementedError("Need to implement for Task 2.2")
 
 
@@ -124,18 +125,38 @@ def shape_broadcast(shape1: UserShape, shape2: UserShape) -> UserShape:
 
     """
     # TODO: Implement for Task 2.2.
-    res_shape = []
-    len1 = len(shape1)
-    len2 = len(shape2)
-    max_len = max(len1, len2)
-    for i in range(1, max_len + 1):
-        dim1 = shape1[len1 - i] if i <= len1 else 1
-        dim2 = shape2[len2 - i] if i <= len2 else 1
-        if dim1 == 1 or dim2 == 1 or dim1 == dim2:
-            res_shape.append(max(dim1, dim2))
+    # res_shape = []
+    # len1 = len(shape1)
+    # len2 = len(shape2)
+    # max_len = max(len1, len2)
+    # for i in range(1, max_len + 1):
+    #     dim1 = shape1[len1 - i] if i <= len1 else 1
+    #     dim2 = shape2[len2 - i] if i <= len2 else 1
+    #     if dim1 == 1 or dim2 == 1 or dim1 == dim2:
+    #         res_shape.append(max(dim1, dim2))
+    #     else:
+    #         raise IndexingError(f"Shapes {shape1} and {shape2} are not broadcastable.")
+    # return tuple(reversed(res_shape))
+
+    a, b = shape1, shape2
+    m = max(len(a), len(b))
+    c_rev = [0] * m
+    a_rev = list(reversed(a))
+    b_rev = list(reversed(b))
+    for i in range(m):
+        if i >= len(a):
+            c_rev[i] = b_rev[i]
+        elif i >= len(b):
+            c_rev[i] = a_rev[i]
         else:
-            raise IndexingError(f"Shapes {shape1} and {shape2} are not broadcastable.")
-    return tuple(reversed(res_shape))
+            c_rev[i] = max(a_rev[i], b_rev[i])
+            if a_rev[i] != c_rev[i] and a_rev[i] != 1:
+                raise IndexingError(f"Broadcast failure {a} {b}")
+            if b_rev[i] != c_rev[i] and b_rev[i] != 1:
+                raise IndexingError(f"Broadcast failure {a} {b}")
+    return tuple(reversed(c_rev))
+
+        
     # raise NotImplementedError("Need to implement for Task 2.2")
 
 
